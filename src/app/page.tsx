@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Alert from "@/components/Alert";
 import { BiKey, BiUser } from "react-icons/bi";
@@ -12,6 +12,26 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const router = useRouter();
+
+  // Verifica se o cookie de autenticação já existe
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/validate", {
+          method: "GET",
+          credentials: "include", // Inclui cookies na requisição
+        });
+
+        if (response.ok) {
+          router.push("/dashboard"); // Redireciona para o dashboard
+        }
+      } catch (err) {
+        console.error("Erro ao verificar autenticação:", err);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   const handleLogin = async () => {
     setError("");
@@ -78,7 +98,7 @@ export default function LoginPage() {
           <input
             type="email"
             placeholder="Email"
-            title="Enter a valid email address"
+            title="Insira um endereço de email válido"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -90,7 +110,7 @@ export default function LoginPage() {
           <BiKey />
           <input
             type="password"
-            className="input"
+            placeholder="Senha"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
