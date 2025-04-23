@@ -2,82 +2,109 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AiOutlineUser } from "react-icons/ai";
+import Alert from "@/components/Alert";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setError("");
+    setShowAlert(false);
+
+    // Validação local
+    if (!email || !password) {
+      setError("Preencha todos os campos.");
+      setShowAlert(true);
+      return;
+    }
+
     setLoading(true);
 
     const MIN_LOADING_TIME = 1000; // 1 segundo
     const startTime = Date.now();
 
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const elapsedTime = Date.now() - startTime;
-    const remainingTime = MIN_LOADING_TIME - elapsedTime;
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = MIN_LOADING_TIME - elapsedTime;
 
-    // Aguarda o tempo mínimo de carregamento
-    if (remainingTime > 0) {
-      await new Promise((resolve) => setTimeout(resolve, remainingTime));
-    }
+      // Aguarda o tempo mínimo de carregamento
+      if (remainingTime > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remainingTime));
+      }
 
-    setLoading(false);
+      setLoading(false);
 
-    if (response.ok) {
-      router.push("/dashboard");
-    } else {
-      const data = await response.json();
-      setError(data.message || "Erro ao fazer login");
+      if (response.ok) {
+        router.push("/dashboard");
+      } else {
+        const data = await response.json();
+        setError(data.message || "Erro ao fazer login");
+        setShowAlert(true);
+      }
+    } catch (err) {
+      setLoading(false);
+      setError("Erro ao conectar ao servidor.");
+      setShowAlert(true);
     }
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-base-200">
-      <form
-        onSubmit={handleLogin}
-        className="card bg-base-100 shadow-md p-6 w-96"
-      >
-        <h1 className="text-2xl font-bold mb-4">Login</h1>
-        {error && <p className="text-error mb-4">{error}</p>}
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Email</label>
+    <div className="flex items-center justify-center h-screen bg-base-100">
+      {showAlert && (
+        <Alert
+          type="error"
+          message={error}
+          onClose={() => setShowAlert(false)}
+        />
+      )}
+      <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
+        <legend className="fieldset-legend">Login</legend>
+
+        <label className="label">Email</label>
+        <label className="input validator">
+          <AiOutlineUser />
           <input
             type="email"
-            className="input input-bordered w-full"
+            required
+            placeholder="Email"
+            pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+            title="Enter a valid email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
           />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Senha</label>
-          <input
-            type="password"
-            className="input input-bordered w-full"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
+        </label>
+        <p className="validator-hint">Must be a valid email address</p>
+
+        <label className="label">Senha</label>
+        <input
+          type="password"
+          className="input"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+
         <button
-          type="submit"
+          type="button"
           className="btn btn-primary w-full"
+          onClick={handleLogin}
           disabled={loading}
         >
           {loading ? <span className="loading loading-spinner"></span> : "Entrar"}
         </button>
-      </form>
+      </fieldset>
     </div>
   );
 }
