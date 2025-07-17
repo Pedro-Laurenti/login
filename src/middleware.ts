@@ -4,24 +4,46 @@ import { jwtVerify } from "jose";
 
 const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET || "default_secret_key");
 
-export async function middleware(req: NextRequest) {
-  const token = req.cookies.get("auth_token")?.value;
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-  if (!token) {
-    return NextResponse.redirect(new URL("/", req.url));
+  // Protected routes that require authentication
+  const protectedRoutes = ["/dashboard"];
+  
+  // Check if the current path is protected
+  const isProtectedRoute = protectedRoutes.some(route => 
+    pathname.startsWith(route)
+  );
+
+  if (isProtectedRoute) {
+    const token = request.cookies.get("auth_token")?.value;
+
+    if (!token) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    try {
+      await jwtVerify(token, SECRET_KEY);
+      return NextResponse.next();
+    } catch (error) {
+      console.error("Token verification failed in middleware:", error);
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
-  try {
-    // Verify the JWT token using jose
-    await jwtVerify(token, SECRET_KEY);
-  } catch (error) {
-    console.error("Error in middleware:", error);
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
+  // For non-protected routes, continue normally
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+  ],
 };
