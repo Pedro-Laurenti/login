@@ -1,139 +1,275 @@
-# Generic Login System
+# Sistema de Login Genérico
 
-A simple and secure login system built with Next.js 15, TypeScript, and MySQL.
+Um sistema completo de autenticação com Next.js, PostgreSQL e recursos configuráveis.
 
-## Features
+## 🚀 Recursos
 
-- 🔐 Secure JWT-based authentication
-- 🍪 HTTP-only cookies for session management
-- 🎨 Modern UI with Tailwind CSS and DaisyUI
-- 🔒 Password hashing with SHA-256
-- 📱 Responsive design
-- ⚡ Next.js App Router support
-- 🛡️ CSRF protection with SameSite cookies
+- ✅ **Autenticação JWT** - Tokens seguros com criptografia
+- ✅ **Tokens de acesso automáticos** - Salvos no banco e validados automaticamente  
+- ✅ **PostgreSQL** - Banco de dados robusto e seguro
+- ✅ **Rate limiting** - Proteção contra ataques de força bruta
+- ✅ **Validação segura** - Senhas fortes e validação de email
+- ✅ **Registro configurável** - Pode ser habilitado/desabilitado via .env
+- ✅ **Recuperação de senha configurável** - Pode ser habilitado/desabilitado via .env
+- ✅ **Verificação de email** - Sistema completo de verificação
+- ✅ **Sessões múltiplas** - Logout individual ou de todos dispositivos
+- ✅ **Interface responsiva** - TailwindCSS + DaisyUI
+- ✅ **TypeScript** - Tipagem completa
 
-## Prerequisites
+## 📋 Pré-requisitos
 
 - Node.js 18+ 
-- MySQL 8.0+
-- npm or yarn
+- PostgreSQL 12+
+- npm ou yarn
 
-## Installation
+## 🛠️ Instalação
 
-1. Clone the repository:
+1. **Clone o repositório:**
 ```bash
-git clone <repository-url>
+git clone <url-do-repositorio>
 cd login
 ```
 
-2. Install dependencies:
+2. **Instale as dependências:**
 ```bash
 npm install
 ```
 
-3. Set up your environment variables by creating a `.env.local` file:
-```env
-# Database Configuration
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=login_system
-
-# JWT Secret (use a strong random string in production)
-JWT_SECRET=your_super_secret_jwt_key_here
-```
-
-4. Set up the database:
-```sql
-CREATE DATABASE login_system;
-USE login_system;
-
-CREATE TABLE users (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(50) DEFAULT 'user',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Optional: Password reset tokens table
-CREATE TABLE password_reset_tokens (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    token VARCHAR(255) NOT NULL,
-    hash_url VARCHAR(255) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-```
-
-5. Create a test user (password will be hashed):
-```sql
--- Example user with password "123456" (SHA-256 hashed)
-INSERT INTO users (name, email, password_hash, role) VALUES 
-('Test User', 'test@example.com', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'user');
-```
-
-## Usage
-
-1. Start the development server:
+3. **Configure o banco de dados:**
 ```bash
+# Crie o banco de dados PostgreSQL
+createdb login_db
+
+# Execute o schema SQL
+psql -d login_db -f database/schema.sql
+```
+
+4. **Configure as variáveis de ambiente:**
+```bash
+# Copie o arquivo de exemplo
+cp .env.example .env
+
+# Edite o arquivo .env com suas configurações
+nano .env
+```
+
+### Variáveis de ambiente obrigatórias:
+
+```env
+# Database
+DATABASE_URL=postgresql://username:password@localhost:5432/login_db
+
+# JWT
+JWT_SECRET=sua-chave-super-secreta-aqui
+JWT_EXPIRES_IN=7d
+
+# Recursos do sistema (true/false)
+NEXT_PUBLIC_ENABLE_REGISTRATION=true
+NEXT_PUBLIC_ENABLE_PASSWORD_RECOVERY=true
+
+# App
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=sua-nextauth-secret-aqui
+```
+
+5. **Execute o projeto:**
+```bash
+# Desenvolvimento
 npm run dev
+
+# Produção
+npm run build
+npm start
 ```
 
-2. Open your browser and navigate to `http://localhost:3000`
+## 🔧 Configuração
 
-3. Login with:
-   - Email: `test@example.com`
-   - Password: `123456`
+### Habilitando/Desabilitando Recursos
 
-## Project Structure
+No arquivo `.env`, você pode controlar quais recursos estarão disponíveis:
 
-```
-src/
-├── app/
-│   ├── api/auth/          # Authentication API routes
-│   │   ├── login/         # Login endpoint
-│   │   ├── logout/        # Logout endpoint
-│   │   └── validate/      # Token validation endpoint
-│   ├── dashboard/         # Protected dashboard page
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx          # Login page
-├── components/
-│   └── Alert.tsx         # Alert component
-└── lib/
-    └── db.ts            # Database connection
+```env
+# Permitir que usuários se cadastrem
+NEXT_PUBLIC_ENABLE_REGISTRATION=true
+
+# Permitir recuperação de senha
+NEXT_PUBLIC_ENABLE_PASSWORD_RECOVERY=true
 ```
 
-## API Endpoints
+- `NEXT_PUBLIC_ENABLE_REGISTRATION=false` - Remove o link "Criar conta" e desabilita a rota `/api/auth/register`
+- `NEXT_PUBLIC_ENABLE_PASSWORD_RECOVERY=false` - Remove o link "Esqueceu a senha" e desabilita as rotas de recuperação
 
-- `POST /api/auth/login` - User authentication
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/validate` - Token validation
+## 🗄️ Estrutura do Banco
 
-## Security Features
+O sistema cria automaticamente as seguintes tabelas:
 
-- JWT tokens with 2-hour expiration
-- HTTP-only cookies prevent XSS attacks
-- SameSite cookies prevent CSRF attacks
-- Password hashing with SHA-256
-- Secure headers in production
+- **users** - Informações dos usuários
+- **access_tokens** - Tokens de acesso para sessões
+- **password_reset_tokens** - Tokens para redefinição de senha  
+- **email_verification_tokens** - Tokens para verificação de email
 
-## Scripts
+## 🔐 Segurança
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+### Recursos de Segurança Implementados:
 
-## License
+- **Rate Limiting**: Proteção contra ataques de força bruta
+- **Senha forte**: Validação de complexidade obrigatória
+- **Hashing seguro**: bcryptjs com salt rounds 12
+- **Tokens JWT**: Assinados com HS256
+- **Cookies HTTP-only**: Tokens não acessíveis via JavaScript
+- **CSRF Protection**: Proteção contra ataques cross-site
+- **SQL Injection**: Queries parametrizadas
+- **Sanitização**: Limpeza de inputs do usuário
 
-MIT License - feel free to use this as a base for your projects.
+### Política de Senhas:
 
-## Contributing
+- Mínimo 8 caracteres
+- Pelo menos 1 letra maiúscula
+- Pelo menos 1 letra minúscula  
+- Pelo menos 1 número
+- Pelo menos 1 caractere especial
 
-Feel free to submit issues and enhancement requests!
+## 📱 Páginas Disponíveis
+
+- `/` - Página inicial (redireciona automaticamente)
+- `/login` - Página de login
+- `/register` - Página de registro (se habilitado)
+- `/forgot-password` - Recuperação de senha (se habilitado)
+- `/reset-password` - Redefinição de senha (se habilitado)
+- `/dashboard` - Painel do usuário (protegido)
+- `/logout` - Logout automático
+
+## 🔌 API Endpoints
+
+### Autenticação
+- `POST /api/auth/login` - Fazer login
+- `POST /api/auth/register` - Registrar usuário (se habilitado)
+- `POST /api/auth/logout` - Logout
+- `DELETE /api/auth/logout` - Logout de todos dispositivos
+- `GET /api/auth/validate` - Validar token
+- `POST /api/auth/validate` - Validar token específico
+
+### Recuperação de Senha
+- `POST /api/auth/forgot-password` - Solicitar redefinição
+- `POST /api/auth/reset-password` - Redefinir senha
+
+### Verificação de Email  
+- `POST /api/auth/verify-email` - Verificar email
+- `PUT /api/auth/verify-email` - Reenviar verificação
+
+## 🚦 Middleware de Autenticação
+
+O sistema possui middleware automático que:
+
+- Redireciona usuários não autenticados de páginas protegidas para `/login`
+- Redireciona usuários autenticados de páginas de auth para `/dashboard` 
+- Valida tokens automaticamente em cada requisição
+- Adiciona informações do usuário nos headers para as páginas
+
+## 💻 Uso no Frontend
+
+### Hook de Autenticação
+
+```typescript
+import { useAuth } from '@/lib/authContext';
+
+function MeuComponente() {
+  const { 
+    user, 
+    loading, 
+    login, 
+    logout, 
+    register 
+  } = useAuth();
+
+  // Verificar se está autenticado
+  if (loading) return <Loading />;
+  if (!user) return <LoginForm />;
+
+  // Usuário autenticado
+  return <Dashboard user={user} />;
+}
+```
+
+### Exemplo de Login
+
+```typescript
+const { login } = useAuth();
+
+const handleLogin = async (email: string, password: string) => {
+  const result = await login(email, password);
+  
+  if (result.success) {
+    // Login bem-sucedido - redirecionamento é automático
+  } else {
+    // Mostrar erro
+    setError(result.error);
+  }
+};
+```
+
+## 🔍 Validação de Token
+
+O sistema suporta dois tipos de tokens:
+
+1. **Access Tokens** - Salvos no banco de dados, validados automaticamente
+2. **JWT Tokens** - Auto-contidos, verificados criptograficamente
+
+A validação é transparente - o sistema tenta ambos os métodos automaticamente.
+
+## 📧 Sistema de Email (Implementação Futura)
+
+Atualmente, os tokens de verificação e recuperação são impressos no console para desenvolvimento. Em produção, você deve implementar um serviço de email para enviar:
+
+- Links de verificação de email
+- Links de redefinição de senha
+
+## 🧪 Teste do Sistema
+
+1. **Inicie o servidor**: `npm run dev`
+2. **Acesse**: `http://localhost:3000`
+3. **Crie uma conta** (se habilitado)
+4. **Faça login**
+5. **Teste os recursos** do dashboard
+
+## 🐛 Debug e Logs
+
+O sistema produz logs detalhados para debug:
+
+- Erros de autenticação
+- Tentativas de login
+- Tokens expirados
+- Rate limiting
+
+Verifique o console do servidor para informações de debug.
+
+## 📝 TODO / Melhorias Futuras
+
+- [ ] Integração com serviço de email (SendGrid, Mailgun, etc.)
+- [ ] Autenticação OAuth (Google, GitHub, etc.)
+- [ ] Captcha em formulários sensíveis
+- [ ] Logs de auditoria mais detalhados
+- [ ] Dashboard administrativo
+- [ ] Testes automatizados
+- [ ] Dockerização
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.
+
+## 🤝 Contribuindo
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📞 Suporte
+
+Se você encontrar problemas ou tiver dúvidas:
+
+1. Verifique se todas as variáveis de ambiente estão configuradas
+2. Confirme se o PostgreSQL está rodando e acessível
+3. Confira os logs do servidor para erros específicos
+4. Abra uma issue no repositório
