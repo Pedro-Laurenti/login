@@ -1,27 +1,57 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
+import { NextRequest, NextResponse } from 'next/server';
+import { isLikelyAuthenticated } from './lib/authEdge';
 
-const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET || "default_secret_key");
+// Define protected routes
+const protectedRoutes = ['/dashboard'];
+const authRoutes = ['/login', '/register', '/forgot-password'];
 
-export async function middleware(req: NextRequest) {
-  const token = req.cookies.get("auth_token")?.value;
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-  if (!token) {
-    return NextResponse.redirect(new URL("/", req.url));
+  // Skip middleware for API routes, static files, and public assets
+  if (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next();
   }
 
-  try {
-    // Verify the JWT token using jose
-    await jwtVerify(token, SECRET_KEY);
-  } catch (error) {
-    console.error("Error in middleware:", error);
-    return NextResponse.redirect(new URL("/", req.url));
+  // Get access token from cookie
+  const accessToken = request.cookies.get('access_token')?.value;
+  
+  // Use Edge Runtime compatible authentication check
+  const isAuthenticated = isLikelyAuthenticated(accessToken);
+
+  // Check if current route is protected
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
+
+  // Redirect unauthenticated users from protected routes
+  if (isProtectedRoute && !isAuthenticated) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Redirect authenticated users from auth routes to dashboard
+  if (isAuthRoute && isAuthenticated) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
-};
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
+}

@@ -1,31 +1,31 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect } from 'react';
+import { useAuth } from '@/lib/authContext';
+import { useRouter } from 'next/navigation';
 
 export default function LogoutPage() {
+  const { logout } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    const logout = async () => {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (response.ok) {
-        router.push("/"); // Redireciona para a página inicial após o logout
-      } else {
-        console.error("Erro ao deslogar");
-      }
+    const performLogout = async () => {
+      await logout();
+      router.push('/login');
     };
 
-    logout();
-  }, [router]);
+    performLogout();
+  }, [logout, router]);
 
   return (
-    <div className="flex items-center justify-center h-screen bg-base-200">
-      <span className="loading loading-spinner"></span>
+    <div className="min-h-screen flex items-center justify-center bg-base-200">
+      <div className="card w-full max-w-md bg-base-100 shadow-xl">
+        <div className="card-body text-center">
+          <div className="loading loading-spinner loading-lg mb-4"></div>
+          <h2 className="text-xl font-semibold">Saindo...</h2>
+          <p className="text-base-content/70">Aguarde enquanto encerramos sua sessão.</p>
+        </div>
+      </div>
     </div>
   );
 }
